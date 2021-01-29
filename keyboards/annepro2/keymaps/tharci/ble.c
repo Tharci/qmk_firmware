@@ -108,6 +108,8 @@ void ble_disconnect(void) {
     keymap_config.nkro = lastNkroStatus;
 #endif
     host_set_driver(lastHostDriver);
+    
+    ledBleConnected();
 }
 
 void ble_unpair(void) {

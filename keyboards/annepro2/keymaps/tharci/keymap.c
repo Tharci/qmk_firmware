@@ -71,8 +71,50 @@ enum custom_keys {
     KC_LED_BRIGHT_UP,
     KC_GAMING_OFF,
     KC_LED_NEXT_PROFILE,
+    KC_LED_PREV_PROFILE,
     KC_BT_UNPAIR,
     KC_USB
+};
+
+
+// Tap Dance declarations
+enum {
+    TD_BLT_1,
+    TD_BLT_2,
+    TD_BLT_3,
+    TD_BLT_4,
+};
+
+void td_blt(unsigned count, uint8_t bleId) {
+    if (count == 1) {
+        ble_connect(bleId);
+    }
+    else if(count == 2) {
+        ble_broadcast(bleId);
+    }
+}
+
+void td_blt_1(qk_tap_dance_state_t *state, void *user_data) {
+    td_blt(state->count, 0);
+}
+
+void td_blt_2(qk_tap_dance_state_t *state, void *user_data) {
+    td_blt(state->count, 1);
+}
+
+void td_blt_3(qk_tap_dance_state_t *state, void *user_data) {
+    td_blt(state->count, 2);
+}
+
+void td_blt_4(qk_tap_dance_state_t *state, void *user_data) {
+    td_blt(state->count, 3);
+}
+
+qk_tap_dance_action_t tap_dance_actions[] = {
+    [TD_BLT_1] = ACTION_TAP_DANCE_FN(td_blt_1),
+    [TD_BLT_2] = ACTION_TAP_DANCE_FN(td_blt_2),
+    [TD_BLT_3] = ACTION_TAP_DANCE_FN(td_blt_3),
+    [TD_BLT_4] = ACTION_TAP_DANCE_FN(td_blt_4)
 };
 
 
@@ -105,7 +147,7 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 
  [_FN2_LAYER] = KEYMAP(
-    KC_USB, KC_BT1_CONN, KC_BT2_CONN, KC_BT3_CONN, KC_BT4_CONN, KC_BT1_BROAD, KC_BT2_BROAD, KC_BT3_BROAD, KC_BT4_BROAD, KC_LED_TOGGLE, KC_LED_NEXT_PROFILE, KC_LED_BRIGHT_DOWN, KC_LED_BRIGHT_UP, KC_TRNS,
+    KC_USB, TD(TD_BLT_1), TD(TD_BLT_2), TD(TD_BLT_3), TD(TD_BLT_4), KC_TRNS, KC_TRNS, KC_TRNS, KC_LED_TOGGLE, KC_LED_PREV_PROFILE, KC_LED_NEXT_PROFILE, KC_LED_BRIGHT_DOWN, KC_LED_BRIGHT_UP, KC_TRNS,
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_PSCR, KC_TRNS, KC_TRNS, KC_TRNS,
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_GAMING_OFF, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_PGDN, KC_TRNS,
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_INS, KC_DEL, KC_TRNS,
@@ -134,6 +176,7 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 const uint16_t keymaps_size = sizeof(keymaps);
 
 
+
 void matrix_init_user(void) {
 
 }
@@ -158,7 +201,7 @@ void matrix_scan_user(void) {
 
         SEQ_THREE_KEYS(KC_A, KC_I, KC_F) {
             toggleLock();
-        }
+        } 
 
         SEQ_TWO_KEYS(KC_G, KC_A) {
             layer_off(_GAMING_NUMPAD_LAYER);
@@ -225,7 +268,7 @@ user_config_t user_config = {
     .leds_on = 0, 
     .leds_profile = 0, 
     .locked = 0, 
-    .brightness = 100};
+    .brightness = 100 };
 
 // keep the number of profiles so we can track along with the shine proc
 uint8_t numProfiles = 0;
@@ -233,6 +276,7 @@ uint8_t numProfiles = 0;
 static void saveConfig(void) {
     eeprom_write((void*)&user_config, 0, sizeof(user_config_t));
 }
+
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     
@@ -253,42 +297,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
             return false;
 
         case KC_LED_NEXT_PROFILE:
-            ledNextProfile();
             user_config.leds_profile = (user_config.leds_profile + 1) % numProfiles;
             ledSetProfile(user_config.leds_profile);
             saveConfig();
             return false;
 
-        case KC_BT1_CONN:
-            ble_connect(0);
-            return false;
-
-        case KC_BT2_CONN:
-            ble_connect(1);
-            return false;
-
-        case KC_BT3_CONN:
-            ble_connect(2);
-            return false;
-
-        case KC_BT4_CONN:
-            ble_connect(3);
-            return false;
-
-        case KC_BT1_BROAD:
-            ble_broadcast(0);
-            return false;
-
-        case KC_BT2_BROAD:
-            ble_broadcast(1);
-            return false;
-
-        case KC_BT3_BROAD:
-            ble_broadcast(2);
-            return false;
-
-        case KC_BT4_BROAD:
-            ble_broadcast(3);
+        case KC_LED_PREV_PROFILE:
+            user_config.leds_profile = (user_config.leds_profile - 1) % numProfiles;
+            ledSetProfile(user_config.leds_profile);
+            saveConfig();
             return false;
 
         case KC_USB:
@@ -303,18 +320,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
             ledBrightDown();
             user_config.brightness = ledGetBrightness();
             saveConfig();
-            break;
+            return false;
 
         case KC_LED_BRIGHT_UP:
             ledBrightUp();
             user_config.brightness = ledGetBrightness();
             saveConfig();
-            break;
+            return false;
 
         case KC_GAMING_OFF:
             layer_off(_GAMING_NUMPAD_LAYER);
             layer_off(_GAMING_ARROW_LAYER);
             ledGamingOff();
+            return false;
 
         default:
             break;
@@ -329,13 +347,13 @@ void keyboard_post_init_user(void) {
     eeprom_read((void*)&user_config, 0, sizeof(user_config_t));
 
     // initialize a new eeprom
-    //if (user_config.magic != MAGIC_CODE) {
+    if (user_config.magic != MAGIC_CODE) {
         user_config.magic = MAGIC_CODE;
-        user_config.leds_on = true;
+        user_config.leds_on = false;
         user_config.leds_profile = 0;
         user_config.locked = 0;
         saveConfig();
-    //}
+    }
 
     ledSetProfile(user_config.leds_profile);
 
@@ -352,6 +370,8 @@ void keyboard_post_init_user(void) {
 }
 
 static void executeLock() {
+    ledSetLocked(user_config.locked);
+    
     if (user_config.locked) {
         driver = host_get_driver();
         host_set_driver(0);

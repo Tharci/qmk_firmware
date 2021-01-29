@@ -19,7 +19,8 @@ enum LedMsgCode {           // Messages:
     LED_SET_BRIGHT,         // 1 byte: brightness (0-100)
     LED_GET_BRIGHT,
     LED_GAMING_ON,
-    LED_GAMING_OFF
+    LED_GAMING_OFF,
+    LED_SET_LOCKED
 };
 
 
@@ -37,6 +38,6 @@ void ledSetBrightness(uint8_t brightness);
 uint8_t ledGetBrightness(void);
 void ledGamingOn(void);
 void ledGamingOff(void);
-
 void ledBleConnecting(uint8_t port);
 void ledBleConnected(void);
+void ledSetLocked(bool isLocked);

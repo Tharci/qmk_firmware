@@ -80,8 +80,11 @@ void ledBleConnecting(uint8_t port) {
     sdPut(&SD0, port);
 }
 
-
 void ledBleConnected(void) {
   sdPut(&SD0, LED_BLT_CONNECTED);
 }
 
+void ledSetLocked(bool isLocked) {
+    sdPut(&SD0, LED_SET_LOCKED);
+    sdPut(&SD0, isLocked);
+}
