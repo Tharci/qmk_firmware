@@ -2,6 +2,9 @@
 #include "annepro2.h"
 #include "led.h"
 #include "ble.h"
+#include "hid_comm.h"
+#include "persistence.h"
+#include "raw_hid.h"
 
 /*
 enum unicode_names {
@@ -55,6 +58,10 @@ const uint32_t PROGMEM unicode_map[] = {
  ),
 */
 
+static void goIntoIAP(void);
+
+
+
 enum custom_keys {
     KC_BT1_CONN = AP2_SAFE_RANGE,
     KC_BT2_CONN,
@@ -73,7 +80,8 @@ enum custom_keys {
     KC_LED_NEXT_PROFILE,
     KC_LED_PREV_PROFILE,
     KC_BT_UNPAIR,
-    KC_USB
+    KC_USB,
+    KC_IAP_MODE,
 };
 
 
@@ -139,9 +147,9 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
  [_FN1_LAYER] = KEYMAP(
     KC_GRV, KC_F1, KC_F2, KC_F3, KC_F4, KC_F5, KC_F6, KC_F7, KC_F8, KC_F9, KC_F10, KC_F11, KC_F12, KC_DEL,
-    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_UP, KC_TRNS, KC_PSCR, KC_HOME, KC_END, KC_TRNS,
-    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEFT, KC_DOWN, KC_RGHT, KC_PGUP, KC_PGDN, KC_TRNS,
-    KC_TRNS, KC_MUTE, KC_VOLD, KC_VOLU, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEAD, KC_TRNS, KC_INS, KC_DEL, KC_TRNS,
+    KC_TRNS, KC_VOLU, KC_MNXT, KC_BRIU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_UP, KC_TRNS, KC_PSCR, KC_HOME, KC_END, KC_TRNS,
+    KC_TRNS, KC_VOLD, KC_MPRV, KC_BRID, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEFT, KC_DOWN, KC_RGHT, KC_PGUP, KC_PGDN, KC_TRNS,
+    KC_TRNS, KC_MUTE, KC_MPLY, KC_CALC, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEAD, KC_TRNS, KC_INS, KC_DEL, KC_TRNS,
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
  ),
 
@@ -186,7 +194,6 @@ layer_state_t layer_state_set_user(layer_state_t layer) {
 }
 
 static void executeLock(void);
-static void toggleLock(void);
 static void setNumpadOn(uint8_t led_state);
 
 LEADER_EXTERNS();
@@ -200,7 +207,7 @@ void matrix_scan_user(void) {
 
 
         SEQ_THREE_KEYS(KC_A, KC_I, KC_F) {
-            toggleLock();
+            pers_toggleLock();
         } 
 
         SEQ_TWO_KEYS(KC_G, KC_A) {
@@ -217,8 +224,12 @@ void matrix_scan_user(void) {
 
             led_update_user(host_keyboard_led_state());
         }
+
+        // IAP MODE
+        SEQ_THREE_KEYS(KC_I, KC_A, KC_P) {
+            goIntoIAP();
+        }
     }
-    
 }
 
 
@@ -246,41 +257,26 @@ void led_set_user(uint8_t led_state) {
 }
 
 
-//// EEPROM ////
-#include "eeprom_w25x20cl.h"
+void raw_hid_receive(uint8_t *data, uint8_t length) {
+    hid_handle(data, length);
+}
 
-static host_driver_t* driver;
 
 
-#define MAGIC_CODE 0xE2
+static void goIntoIAP(void) {
+    ledGoIntoIAP();
+    // wait for shine to go into IAP mode
+    wait_ms(15);
 
-typedef struct {
-    uint8_t magic : 8;
-    uint8_t leds_on : 8;
-    uint8_t leds_profile : 8;
-    uint8_t locked : 8;
-    uint8_t brightness : 8;
-} user_config_t;
+    // Magic key to set keyboard to IAP
+    *((uint32_t*)0x20001ffc) = 0x0000fab2;
 
-// define out default user_config
-user_config_t user_config = {
-    .magic = MAGIC_CODE, 
-    .leds_on = 0, 
-    .leds_profile = 0, 
-    .locked = 0, 
-    .brightness = 100 };
-
-// keep the number of profiles so we can track along with the shine proc
-uint8_t numProfiles = 0;
-
-static void saveConfig(void) {
-    eeprom_write((void*)&user_config, 0, sizeof(user_config_t));
+    __disable_irq();
+    NVIC_SystemReset();
 }
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
-    
-    
     if (record->event.pressed) {
         uint8_t keyPos = 0;
         keyPos |= (record->event.key.col << 4);
@@ -288,24 +284,18 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
         ledKeyPressed(keyPos);
     }
 
-    if (record->event.pressed && !user_config.locked) {
+    if (record->event.pressed && !pers_isLocked()) {
         switch (keycode) {
         case KC_LED_TOGGLE:
-            ledToggle();
-            user_config.leds_on = !user_config.leds_on;
-            saveConfig();
+            pers_ledToggle();
             return false;
 
         case KC_LED_NEXT_PROFILE:
-            user_config.leds_profile = (user_config.leds_profile + 1) % numProfiles;
-            ledSetProfile(user_config.leds_profile);
-            saveConfig();
+            pers_ledNextProf();
             return false;
 
         case KC_LED_PREV_PROFILE:
-            user_config.leds_profile = (user_config.leds_profile - 1) % numProfiles;
-            ledSetProfile(user_config.leds_profile);
-            saveConfig();
+            pers_ledPrevProf();
             return false;
 
         case KC_USB:
@@ -316,22 +306,22 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
             ble_unpair();
             return false;
 
-        case KC_LED_BRIGHT_DOWN:
-            ledBrightDown();
-            user_config.brightness = ledGetBrightness();
-            saveConfig();
+        case KC_LED_BRIGHT_UP:
+            pers_ledBrightUp();
             return false;
 
-        case KC_LED_BRIGHT_UP:
-            ledBrightUp();
-            user_config.brightness = ledGetBrightness();
-            saveConfig();
+        case KC_LED_BRIGHT_DOWN:
+            pers_ledBrightDown();
             return false;
 
         case KC_GAMING_OFF:
             layer_off(_GAMING_NUMPAD_LAYER);
             layer_off(_GAMING_ARROW_LAYER);
             ledGamingOff();
+            return false;
+
+        case KC_IAP_MODE:
+            goIntoIAP();
             return false;
 
         default:
@@ -342,46 +332,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     return true;
 }
 
+
 void keyboard_post_init_user(void) {
-    // Read the user config from EEPROM
-    eeprom_read((void*)&user_config, 0, sizeof(user_config_t));
-
-    // initialize a new eeprom
-    if (user_config.magic != MAGIC_CODE) {
-        user_config.magic = MAGIC_CODE;
-        user_config.leds_on = false;
-        user_config.leds_profile = 0;
-        user_config.locked = 0;
-        saveConfig();
-    }
-
-    ledSetProfile(user_config.leds_profile);
-
-    if (user_config.leds_on) {
-        ledToggle();
-    }
-
-    numProfiles = ledGetNumProfiles();
-
-    ledSetBrightness(user_config.brightness);
-
-    driver = host_get_driver();
-    executeLock();
-}
-
-static void executeLock() {
-    ledSetLocked(user_config.locked);
-    
-    if (user_config.locked) {
-        driver = host_get_driver();
-        host_set_driver(0);
-    } else {
-        host_set_driver(driver);
-    }
-}
-
-static void toggleLock() {
-    user_config.locked = !(user_config.locked);
-    executeLock();
-    saveConfig();
+    pers_init();
 }

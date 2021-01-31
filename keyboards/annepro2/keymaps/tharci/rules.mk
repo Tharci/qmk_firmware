@@ -16,6 +16,9 @@ endif
 LEADER_ENABLE = yes
 # UNICODEMAP_ENABLE = yes
 TAP_DANCE_ENABLE = yes
+RAW_ENABLE = yes
 
 SRC += ble.c
 SRC += led.c
+SRC += hid_comm.c
+SRC += persistence.c

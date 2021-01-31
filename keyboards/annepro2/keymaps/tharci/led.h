@@ -20,7 +20,8 @@ enum LedMsgCode {           // Messages:
     LED_GET_BRIGHT,
     LED_GAMING_ON,
     LED_GAMING_OFF,
-    LED_SET_LOCKED
+    LED_SET_LOCKED,
+    LED_IAP_MODE,
 };
 
 
@@ -41,3 +42,4 @@ void ledGamingOff(void);
 void ledBleConnecting(uint8_t port);
 void ledBleConnected(void);
 void ledSetLocked(bool isLocked);
+void ledGoIntoIAP(void);
