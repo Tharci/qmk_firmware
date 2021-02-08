@@ -70,6 +70,13 @@ void pers_init() {
     executeLock();
 }
 
+void pers_tick() {
+    if (driver == 0 && user_config.locked) {
+        driver = host_get_driver();
+        host_set_driver(0);
+    }
+}
+
 void pers_toggleLock() {
     user_config.locked = !(user_config.locked);
     executeLock();
@@ -93,7 +100,7 @@ void pers_ledNextProf() {
 }
 
 void pers_ledPrevProf() {
-    user_config.leds_profile = (user_config.leds_profile - 1) % numProfiles;
+    user_config.leds_profile = ((int)user_config.leds_profile + numProfiles - 1) % numProfiles;
     ledSetProfile(user_config.leds_profile);
     saveConfig();
 }

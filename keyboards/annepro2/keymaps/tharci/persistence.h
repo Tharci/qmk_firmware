@@ -17,6 +17,7 @@ typedef struct {
 
 
 void pers_init(void);
+void pers_tick(void);
 
 void pers_toggleLock(void);
 bool pers_isLocked(void);

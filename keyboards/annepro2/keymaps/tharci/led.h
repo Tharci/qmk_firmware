@@ -7,8 +7,8 @@ enum LedMsgCode {           // Messages:
     LED_NEXT_PROFILE,       // 0 byte
     LED_PREV_PROFILE,       // 0 byte
     LED_SET_PROFILE,        // 1 byte: profile
-    LED_GET_PROFILE,        // 0 byte;  response - 1 byte: message
-    LED_GET_PROFILE_COUNT,  // 0 byte;  response - 1 byte: message
+    LED_GET_PROFILE,        // 0 byte; response - 1 byte: message
+    LED_GET_PROFILE_COUNT,  // 0 byte; response - 1 byte: message
     LED_KEY_PRESSED,        // 1 byte: col (4 bits) + row (4 bits)
     LED_CAPS_ON,            // 0 byte
     LED_CAPS_OFF,           // 0 byte
@@ -22,7 +22,11 @@ enum LedMsgCode {           // Messages:
     LED_GAMING_OFF,
     LED_SET_LOCKED,
     LED_IAP_MODE,
+    LED_POWER_PLAN,         // 1 byte; 0 - normal, 1 - power saving
+    LED_UPDATE_WEATHER,
 };
+
+typedef enum { POWER_NORMAL, POWER_SAVING } PowerPlan;
 
 
 void ledToggle(void);
@@ -43,3 +47,5 @@ void ledBleConnecting(uint8_t port);
 void ledBleConnected(void);
 void ledSetLocked(bool isLocked);
 void ledGoIntoIAP(void);
+void ledSetPowerPlan(PowerPlan powerPlan);
+void ledSetWeather(uint8_t* data, uint8_t length);

@@ -92,3 +92,15 @@ void ledSetLocked(bool isLocked) {
 void ledGoIntoIAP(void) {
     sdPut(&SD0, LED_IAP_MODE);
 }
+
+void ledSetPowerPlan(PowerPlan powerPlan) {
+    sdPut(&SD0, LED_POWER_PLAN);
+    sdPut(&SD0, powerPlan);
+}
+
+void ledSetWeather(uint8_t* data, uint8_t length) {
+  sdPut(&SD0, LED_UPDATE_WEATHER);
+  sdWrite(&SD0, data, length);
+}
+
+

@@ -184,6 +184,8 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 const uint16_t keymaps_size = sizeof(keymaps);
 
 
+PowerPlan powerPlan = POWER_SAVING;
+
 
 void matrix_init_user(void) {
 
@@ -277,6 +279,8 @@ static void goIntoIAP(void) {
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+    pers_tick();
+
     if (record->event.pressed) {
         uint8_t keyPos = 0;
         keyPos |= (record->event.key.col << 4);
@@ -335,4 +339,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 
 void keyboard_post_init_user(void) {
     pers_init();
+
+    ledSetPowerPlan(powerPlan);
 }

@@ -17,6 +17,7 @@ LEADER_ENABLE = yes
 # UNICODEMAP_ENABLE = yes
 TAP_DANCE_ENABLE = yes
 RAW_ENABLE = yes
+NKRO_ENABLE = yes
 
 SRC += ble.c
 SRC += led.c
