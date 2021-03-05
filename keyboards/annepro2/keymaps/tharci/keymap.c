@@ -207,17 +207,19 @@ void matrix_scan_user(void) {
         leading = false;
         leader_end();
 
-
+        // TOGGLE LOCK
         SEQ_THREE_KEYS(KC_A, KC_I, KC_F) {
             pers_toggleLock();
         } 
 
+        // TURN ON GAMING MODE - ARROWS
         SEQ_TWO_KEYS(KC_G, KC_A) {
             layer_off(_GAMING_NUMPAD_LAYER);
             layer_on(_GAMING_ARROW_LAYER);
             ledGamingOn();
         }
 
+        // TURN ON GAMING MODE - NUMPAD
         SEQ_TWO_KEYS(KC_G, KC_N) {
             layer_off(_GAMING_ARROW_LAYER);
             layer_on(_GAMING_NUMPAD_LAYER);

@@ -4,7 +4,7 @@
 #include "persistence.h"
 
 typedef enum {
-    Weather = 0, Gaming, Notification
+    Weather = 0x11, Gaming, Notification
 } MessageType;
 
 void hid_handle(uint8_t* data, uint8_t length) {
