@@ -24,6 +24,8 @@ enum LedMsgCode {           // Messages:
     LED_IAP_MODE,
     LED_POWER_PLAN,         // 1 byte; 0 - normal, 1 - power saving
     LED_UPDATE_WEATHER,
+    LED_SHOW_TEMP,
+    LED_SHOW_TIME
 };
 
 typedef enum { POWER_NORMAL, POWER_SAVING } PowerPlan;
@@ -49,3 +51,5 @@ void ledSetLocked(bool isLocked);
 void ledGoIntoIAP(void);
 void ledSetPowerPlan(PowerPlan powerPlan);
 void ledSetWeather(uint8_t* data, uint8_t length);
+void ledShowTemp(void);
+void ledShowTime(void);

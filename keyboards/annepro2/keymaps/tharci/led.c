@@ -103,4 +103,11 @@ void ledSetWeather(uint8_t* data, uint8_t length) {
   sdWrite(&SD0, data, length);
 }
 
+void ledShowTemp(void) {
+  sdPut(&SD0, LED_SHOW_TEMP);
+}
+
+void ledShowTime(void) {
+  sdPut(&SD0, LED_SHOW_TIME);
+}
 

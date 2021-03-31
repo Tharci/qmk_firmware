@@ -233,12 +233,20 @@ void matrix_scan_user(void) {
         SEQ_THREE_KEYS(KC_I, KC_A, KC_P) {
             goIntoIAP();
         }
+
+        SEQ_THREE_KEYS(KC_T, KC_M, KC_P) {
+            ledShowTemp();
+        }
+
+        SEQ_THREE_KEYS(KC_T, KC_M, KC_E) {
+            ledShowTime();
+        }
     }
 }
 
 
 /*
-    @brief Turns on num pad in case it is turned off.
+ *  @brief Turns on num pad in case it is turned off.
 */
 static void setNumpadOn(uint8_t led_state) {
     // Keeps Numpad turned on while _GAMING_NUMPAD_LAYER is on.
