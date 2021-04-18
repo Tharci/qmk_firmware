@@ -14,7 +14,7 @@ static user_config_t user_config = {
     .leds_profile = 0, 
     .locked = 0, 
     .brightness = 100 
-    };
+};
 
 // keep the number of profiles so we can track along with the led mcu
 static int8_t numProfiles = 0;
@@ -100,7 +100,7 @@ void pers_ledNextProf() {
 }
 
 void pers_ledPrevProf() {
-    user_config.leds_profile = ((int)user_config.leds_profile - 1) % numProfiles;
+    user_config.leds_profile = (user_config.leds_profile + numProfiles - 1) % numProfiles;
     ledSetProfile(user_config.leds_profile);
     saveConfig();
 }
