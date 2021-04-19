@@ -82,6 +82,12 @@ enum custom_keys {
     KC_BT_UNPAIR,
     KC_USB,
     KC_IAP_MODE,
+    KC_UP_10,
+    KC_DOWN_10,
+    KC_LEFT_10,
+    KC_RIGHT_10,
+
+    KC_NONE,
 };
 
 
@@ -91,7 +97,19 @@ enum {
     TD_BLT_2,
     TD_BLT_3,
     TD_BLT_4,
+    TD_CAPS_LAYERS,
 };
+
+
+enum anne_pro_layers {
+  _BASE_LAYER,
+  //_UNICODE_LAYER,
+  _FN1_LAYER,
+  _FN2_LAYER,
+  _GAMING_ARROW_LAYER,
+  _GAMING_NUMPAD_LAYER
+};
+
 
 void td_blt(unsigned count, uint8_t bleId) {
     if (count == 1) {
@@ -118,21 +136,109 @@ void td_blt_4(qk_tap_dance_state_t *state, void *user_data) {
     td_blt(state->count, 3);
 }
 
-qk_tap_dance_action_t tap_dance_actions[] = {
-    [TD_BLT_1] = ACTION_TAP_DANCE_FN(td_blt_1),
-    [TD_BLT_2] = ACTION_TAP_DANCE_FN(td_blt_2),
-    [TD_BLT_3] = ACTION_TAP_DANCE_FN(td_blt_3),
-    [TD_BLT_4] = ACTION_TAP_DANCE_FN(td_blt_4)
+
+
+/* CAPS LAYERS KEY */
+
+typedef enum {
+    TD_NONE,
+    TD_UNKNOWN,
+    TD_SINGLE_TAP,
+    TD_SINGLE_HOLD,
+    TD_DOUBLE_TAP,
+    TD_DOUBLE_HOLD,
+    TD_DOUBLE_SINGLE_TAP, // Send two single taps
+    TD_TRIPLE_TAP,
+    TD_TRIPLE_HOLD
+} td_state_t;
+
+typedef struct {
+    bool is_press_action;
+    td_state_t state;
+} td_tap_t;
+
+td_state_t cur_dance(qk_tap_dance_state_t *state) {
+    if (state->count == 1) {
+        if (state->pressed) return TD_SINGLE_HOLD;
+        else return TD_SINGLE_TAP;
+    } else if (state->count == 2) {
+        if (state->pressed) return TD_DOUBLE_HOLD;
+        else return TD_DOUBLE_TAP;
+    }
+    else if (state->count == 3) {
+        if (!state->pressed) return TD_TRIPLE_TAP;
+        else return TD_TRIPLE_HOLD;
+    } 
+    else  {
+        return TD_UNKNOWN;
+    }
+}
+
+static td_tap_t caps_layers_tap_state = {
+    .is_press_action = true,
+    .state = TD_NONE
 };
 
+static void multiplePress(uint16_t keycode, int n);
 
-enum anne_pro_layers {
-  _BASE_LAYER,
-  //_UNICODE_LAYER,
-  _FN1_LAYER,
-  _FN2_LAYER,
-  _GAMING_ARROW_LAYER,
-  _GAMING_NUMPAD_LAYER
+static void td_caps_layers_finished(qk_tap_dance_state_t *state, void *user_data) {
+    caps_layers_tap_state.state = cur_dance(state);
+    
+    switch (caps_layers_tap_state.state) {
+        case TD_SINGLE_TAP: 
+            tap_code(KC_CAPS);
+            break;
+
+        case TD_SINGLE_HOLD: 
+            layer_on(_FN1_LAYER);
+            break;
+
+        case TD_DOUBLE_TAP:
+            qk_leader_start();
+            break;
+
+        case TD_DOUBLE_HOLD:
+            layer_on(_FN2_LAYER);
+
+            // separately process uint16_t keycodes, because only basic 
+            // keycodes are executed when tap-dance gets interrupted
+            if (state->interrupted) {
+                switch(state->interrupting_keycode) {
+                    case KC_J:
+                        multiplePress(KC_LEFT, 10);
+                        break;
+                    case KC_K:
+                        multiplePress(KC_DOWN, 10);
+                        break;
+                    case KC_I:
+                        multiplePress(KC_UP, 10);
+                        break;
+                    case KC_L:
+                        multiplePress(KC_RGHT, 10);
+                        break;
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void td_caps_layers_reset(qk_tap_dance_state_t *state, void *user_data) {
+    layer_off(_FN1_LAYER);
+    layer_off(_FN2_LAYER);
+    caps_layers_tap_state.state = TD_NONE;
+}
+
+/****/
+
+qk_tap_dance_action_t tap_dance_actions[] = {
+    [TD_BLT_1]       = ACTION_TAP_DANCE_FN(td_blt_1),
+    [TD_BLT_2]       = ACTION_TAP_DANCE_FN(td_blt_2),
+    [TD_BLT_3]       = ACTION_TAP_DANCE_FN(td_blt_3),
+    [TD_BLT_4]       = ACTION_TAP_DANCE_FN(td_blt_4),
+    [TD_CAPS_LAYERS] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, td_caps_layers_finished, td_caps_layers_reset),
 };
 
 
@@ -140,28 +246,26 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  [_BASE_LAYER] = KEYMAP(
     KC_ESC, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8, KC_9, KC_0, KC_MINS, KC_EQL, KC_BSPC,
     KC_TAB, KC_Q, KC_W, KC_E, KC_R, KC_T, KC_Y, KC_U, KC_I, KC_O, KC_P, KC_LBRC, KC_RBRC, KC_BSLS,
-    LT(_FN1_LAYER, KC_CAPS), KC_A, KC_S, KC_D, KC_F, KC_G, KC_H, KC_J, KC_K, KC_L, KC_SCLN, KC_QUOT, KC_ENT,
-    KC_LSFT, KC_Z, KC_X, KC_C, KC_V, KC_B, KC_N, KC_M, KC_COMM, KC_DOT, KC_SLSH, RSFT_T(KC_UP),
+    TD(TD_CAPS_LAYERS), KC_A, KC_S, KC_D, KC_F, KC_G, KC_H, KC_J, KC_K, KC_L, KC_SCLN, KC_QUOT, LT(_FN1_LAYER, KC_ENT),
+    LSFT_T(KC_BSPC), KC_Z, KC_X, KC_C, KC_V, KC_B, KC_N, KC_M, KC_COMM, KC_DOT, KC_SLSH, RSFT_T(KC_UP),
     KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_RALT, LT(_FN1_LAYER, KC_LEFT), RCTL_T(KC_DOWN), LT(_FN2_LAYER, KC_RGHT)
  ),
 
  [_FN1_LAYER] = KEYMAP(
     KC_GRV, KC_F1, KC_F2, KC_F3, KC_F4, KC_F5, KC_F6, KC_F7, KC_F8, KC_F9, KC_F10, KC_F11, KC_F12, KC_DEL,
-    KC_TRNS, KC_VOLU, KC_MNXT, KC_BRIU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_UP, KC_TRNS, KC_PSCR, KC_HOME, KC_END, KC_TRNS,
-    KC_TRNS, KC_VOLD, KC_MPRV, KC_BRID, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEFT, KC_DOWN, KC_RGHT, KC_PGUP, KC_PGDN, KC_TRNS,
-    KC_TRNS, KC_MUTE, KC_MPLY, KC_CALC, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEAD, KC_TRNS, KC_INS, KC_DEL, KC_TRNS,
+    KC_TRNS, KC_VOLU, KC_MNXT, KC_BRIU, KC_TRNS, KC_TRNS, KC_TRNS, KC_MS_BTN4, KC_UP, KC_MS_BTN5, KC_PSCR, KC_HOME, KC_END, KC_TRNS,
+    KC_TRNS, KC_VOLD, KC_MPRV, KC_BRID, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEFT, KC_DOWN, KC_RIGHT, KC_PGUP, KC_PGDN, KC_TRNS,
+    KC_TRNS, KC_MUTE, KC_MPLY, KC_CALC, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_INS, KC_DEL, KC_TRNS,
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
  ),
-
 
  [_FN2_LAYER] = KEYMAP(
     KC_USB, TD(TD_BLT_1), TD(TD_BLT_2), TD(TD_BLT_3), TD(TD_BLT_4), KC_TRNS, KC_TRNS, KC_TRNS, KC_LED_TOGGLE, KC_LED_PREV_PROFILE, KC_LED_NEXT_PROFILE, KC_LED_BRIGHT_DOWN, KC_LED_BRIGHT_UP, KC_TRNS,
-    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_PSCR, KC_TRNS, KC_TRNS, KC_TRNS,
-    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_GAMING_OFF, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_PGDN, KC_TRNS,
-    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_INS, KC_DEL, KC_TRNS,
+    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_MS_BTN4, KC_UP_10, KC_MS_BTN5, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_GAMING_OFF, KC_TRNS, KC_LEFT_10, KC_DOWN_10, KC_RIGHT_10, KC_TRNS, KC_TRNS, KC_TRNS,
+    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
  ),
-
 
  [_GAMING_ARROW_LAYER] = KEYMAP(
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
@@ -170,7 +274,6 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_UP,
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, MO(_FN2_LAYER), KC_LEFT, KC_DOWN, KC_RGHT
  ),
-
 
  [_GAMING_NUMPAD_LAYER] = KEYMAP(
     KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
@@ -251,8 +354,7 @@ void matrix_scan_user(void) {
 static void setNumpadOn(uint8_t led_state) {
     // Keeps Numpad turned on while _GAMING_NUMPAD_LAYER is on.
     if (layer_state_is(_GAMING_NUMPAD_LAYER) && !(led_state & (1<<USB_LED_NUM_LOCK))) {
-        register_code(KC_NUMLOCK);
-        unregister_code(KC_NUMLOCK);
+        tap_code(KC_NUMLOCK);
     }
 }
 
@@ -287,6 +389,11 @@ static void goIntoIAP(void) {
     NVIC_SystemReset();
 }
 
+static void multiplePress(uint16_t keycode, int n) {
+    for(int i = 0; i < n; i++) {
+        tap_code16(keycode);
+    }
+}
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     pers_tick();
@@ -336,6 +443,25 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 
         case KC_IAP_MODE:
             goIntoIAP();
+            return false;
+
+        case KC_UP_10:
+            multiplePress(KC_UP, 10);
+            return false;
+
+        case KC_DOWN_10:
+            multiplePress(KC_DOWN, 10);
+            return false;
+
+        case KC_LEFT_10:
+            multiplePress(KC_LEFT, 10);
+            return false;
+
+        case KC_RIGHT_10:
+            multiplePress(KC_RIGHT, 10);
+            return false;
+
+        case KC_NONE:
             return false;
 
         default:

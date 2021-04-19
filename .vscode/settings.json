@@ -16,7 +16,12 @@
         "*.hpp": "cpp",
         "xstddef": "c",
         "type_traits": "c",
-        "utility": "c"
+        "utility": "c",
+        "*.rh": "c",
+        "chrono": "c",
+        "iterator": "c",
+        "xhash": "c",
+        "xtree": "c"
     },
     "[markdown]": {
         "editor.trimAutoWhitespace": false,

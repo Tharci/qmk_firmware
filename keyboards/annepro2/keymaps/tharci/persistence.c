@@ -1,6 +1,7 @@
 #include "persistence.h"
 
 #include "led.h"
+#include "ble.h"
 
 
 /* 
@@ -68,6 +69,13 @@ void pers_init() {
 
     driver = host_get_driver();
     executeLock();
+
+
+    // TODO: Check if the keyboard is plugged in
+    if (false) {
+        wait_ms(500);
+        ble_connect(0);
+    }
 }
 
 void pers_tick() {
